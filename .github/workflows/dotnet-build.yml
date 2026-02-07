@@ -21,14 +21,14 @@ jobs:
   # Defines a job named 'build'.
   build:
     # Specifies the type of machine (runner) the job will run on.
-    # We use 'windows-latest' because Step 2 targets IIS (Windows), so it's best to build on a similar OS.
+    # I use 'windows-latest' because Step 2 targets IIS (Windows), so it's best to build on a similar OS.
     runs-on: windows-latest
 
     # A job contains a sequence of tasks called 'steps'.
     steps:
     
     # STEP 1: CHECKOUT CODE
-    # This standard action checks out your repository under $GITHUB_WORKSPACE so the workflow can access it.
+    # This standard action checks out my repository under $GITHUB_WORKSPACE so the workflow can access it.
     - uses: actions/checkout@v4
 
     # STEP 2: SETUP .NET ENVIRONMENT
@@ -37,36 +37,49 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         # Specifies the .NET version to use. 
-        dotnet-version: 8.0.x
+        dotnet-version: '8.0.101'
 
-    # STEP 3: RESTORE DEPENDENCIES
+    # STEP 3: GENERATE DYNAMIC VERSION (BUILD TIME)
+    # This step creates a version number based on the current date and the GitHub run number.
+    # Format Example: 2026.02.07.15
+    # I store this in the $env:GITHUB_ENV variable so subsequent steps can use it.
+    - name: Generate Build-Time Version
+      run: |
+        $date = Get-Date -Format "yyyy.M.d"
+        $run = ${{ github.run_number }}
+        $version = "$date.$run"
+        echo "BUILD_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+        Write-Host "Generated Version: $version"
+
+    # STEP 4: RESTORE DEPENDENCIES
     # Restores the dependencies and tools of the project (downloads NuGet packages).
     - name: Restore dependencies
       run: dotnet restore
 
-    # STEP 4: BUILD
+    # STEP 5: BUILD
     # Compiles the application code.
     # --no-restore: Skips the restore step (since we just did it) to save time.
     # --configuration Release: Builds the app in Release mode (optimized for production).
+    # This stamps the DLLs/EXE with the build-time version.
     - name: Build
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build --no-restore --configuration Release /p:Version=${{ env.BUILD_VERSION }}
 
-    # STEP 5: PUBLISH (CREATE PACKAGE)
+    # STEP 6: PUBLISH (CREATE PACKAGE)
     # Compiles the application and copies all files needed to run into a publish folder.
     # --no-build: Skips the build step (since we just did it).
     # --output: Specifies the folder where the artifacts will be placed.
     # This effectively prepares the application files that will be zipped.
     - name: Publish
-      run: dotnet publish --no-build --configuration Release --output ./publish_output
+      run: dotnet publish --no-build --configuration Release --output ./publish_output /p:Version=${{ env.BUILD_VERSION }}
 
-    # STEP 6: UPLOAD ARTIFACT (ZIP)
+    # STEP 7: UPLOAD ARTIFACT (ZIP)
     # This step uploads the build output so we can download it later or use it in a deployment job.
     # It automatically zips the folder contents, satisfying the "Zip package" requirement.
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        # The name of the artifact file (will be downloaded as HelloWorld-Package.zip).
-        name: HelloWorld-Package
+        # The name of the artifact file (will be downloaded as HelloWorld-Package-<BUILD_VERSION>.zip).
+        name: HelloWorld-Package-${{ env.BUILD_VERSION }}
         # The path to the folder we want to upload (created in Step 5).
         path: ./publish_output/**
         # Fails the pipeline if the expected files are missing.
