@@ -1,15 +1,18 @@
 # 1. CONFIGURATION VARIABLES
-# We define all names and paths here at the top. 
+param(
+    [Parameter(Mandatory=$true, HelpMessage="Enter the password for the Service User")]
+    [string]$UserPassword,
 
-$SiteName        = "EurofinsSite"          # Name of the main website in IIS
-$AppName         = "HelloWorld"            # Name of the sub-application
+    [string]$SiteName = "EurofinsSite",    # Name of the main website in IIS
+    [string]$AppName = "HelloWorld",       # Name of the sub-application
+    [string]$UserName = "EurofinsServiceUser"  # Local User name
+)
+
 $HostName        = "localhost"             # The URL hostname we will bind to
 $AppPoolName     = "EurofinsAppPool"       # The custom Application Pool name
-$GroupName       = "EurofinsUsers"         # Local Group name (Requirement: Create local group)
-$UserName        = "EurofinsServiceUser"   # Local User name (Requirement: Create specified user)
-$UserPassword    = "P@ssw0rd123!"          # Password for the user (In a real scenario, use secure inputs)
+$GroupName       = "EurofinsUsers"         # Local Group name
 $PhysicalPath    = "C:\inetpub\wwwroot\$AppName" # Where the app files are stored
-$LogPath         = "C:\inetpub\logs\EurofinsLogs" # Custom log location (Requirement: Modify log path)
+$LogPath         = "C:\inetpub\logs\EurofinsLogs" # Custom log location
 
 # Check if the folder for the application exists. If not, create it.
 # I need this folder to exist to set permissions on it later.
