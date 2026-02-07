@@ -1,0 +1,73 @@
+# Defines the name of the workflow as it will appear in the GitHub Actions UI.
+name: .NET Build and Publish
+
+# TRIGGERS (WHEN TO RUN)
+# The 'on' keyword specifies the events that trigger this workflow.
+on:
+  # Triggers the workflow on 'push' events...
+  push:
+    # ...but only when the push is to the 'main' branch.
+    # This ensures every commit to main is automatically tested and built.
+    branches: [ "main" ]
+
+  # Triggers the workflow on 'pull_request' events...
+  pull_request:
+    # ...targeting the 'main' branch. This ensures code is verified before merging.
+    branches: [ "main" ]
+
+# JOBS (WHAT TO DO)
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel.
+jobs:
+  # Defines a job named 'build'.
+  build:
+    # Specifies the type of machine (runner) the job will run on.
+    # We use 'windows-latest' because Step 2 targets IIS (Windows), so it's best to build on a similar OS.
+    runs-on: windows-latest
+
+    # A job contains a sequence of tasks called 'steps'.
+    steps:
+    
+    # STEP 1: CHECKOUT CODE
+    # This standard action checks out your repository under $GITHUB_WORKSPACE so the workflow can access it.
+    - uses: actions/checkout@v4
+
+    # STEP 2: SETUP .NET ENVIRONMENT
+    # This action sets up the .NET SDK environment to use the dotnet CLI.
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # Specifies the .NET version to use. 
+        dotnet-version: 8.0.x
+
+    # STEP 3: RESTORE DEPENDENCIES
+    # Restores the dependencies and tools of the project (downloads NuGet packages).
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # STEP 4: BUILD
+    # Compiles the application code.
+    # --no-restore: Skips the restore step (since we just did it) to save time.
+    # --configuration Release: Builds the app in Release mode (optimized for production).
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    # STEP 5: PUBLISH (CREATE PACKAGE)
+    # Compiles the application and copies all files needed to run into a publish folder.
+    # --no-build: Skips the build step (since we just did it).
+    # --output: Specifies the folder where the artifacts will be placed.
+    # This effectively prepares the application files that will be zipped.
+    - name: Publish
+      run: dotnet publish --no-build --configuration Release --output ./publish_output
+
+    # STEP 6: UPLOAD ARTIFACT (ZIP)
+    # This step uploads the build output so we can download it later or use it in a deployment job.
+    # It automatically zips the folder contents, satisfying the "Zip package" requirement.
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        # The name of the artifact file (will be downloaded as HelloWorld-Package.zip).
+        name: HelloWorld-Package
+        # The path to the folder we want to upload (created in Step 5).
+        path: ./publish_output/**
+        # Fails the pipeline if the expected files are missing.
+        if-no-files-found: error
