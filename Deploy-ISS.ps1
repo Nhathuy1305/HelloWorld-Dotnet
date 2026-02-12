@@ -49,7 +49,7 @@ if (-not (Get-LocalUser -Name $UserName -ErrorAction SilentlyContinue)) {
 }
 
 # Add the new User to the new Group.
-Add-LocalGroupMember -Group $GroupName -Member $UserName
+Add-LocalGroupMember -Group $GroupName -Member $UserName -ErrorAction SilentlyContinue
 Write-Host "User '$UserName' added to group '$GroupName'."
 
 # 3. FILE SYSTEM PERMISSIONS
