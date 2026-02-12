@@ -16,4 +16,4 @@ RUN dotnet publish "HelloWord.csproj" -c Release -o /app/publish /p:UseAppHost=f
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "HelloWorld.dll"]
+ENTRYPOINT ["dotnet", "HelloWord.dll"]
